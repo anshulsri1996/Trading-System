@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trading Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e0e0e0;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 20px;
+      font-weight: 500;
+      color: #fff;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #2a2a3a;
+      padding-bottom: 12px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .card {
+      background: #1a1a2e;
+      border: 1px solid #2a2a3a;
+      border-radius: 10px;
+      padding: 18px;
+    }
+    .card .label {
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .card .value {
+      font-size: 22px;
+      font-weight: 600;
+      color: #fff;
+    }
+    .card .value.positive { color: #4ade80; }
+    .card .value.negative { color: #f87171; }
+    .card .value.neutral  { color: #60a5fa; }
+
+    .signal-badge {
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .signal-BUY  { background: #14532d; color: #4ade80; }
+    .signal-SELL { background: #7f1d1d; color: #f87171; }
+    .signal-HOLD { background: #1e3a5f; color: #93c5fd; }
+    .signal-NONE { background: #2a2a3a; color: #888; }
+
+    .charts-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .chart-card {
+      background: #1a1a2e;
+      border: 1px solid #2a2a3a;
+      border-radius: 10px;
+      padding: 18px;
+    }
+    .chart-card h3 {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 14px;
+      font-weight: 500;
+    }
+
+    .bottom-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th {
+      text-align: left;
+      color: #666;
+      font-weight: 500;
+      font-size: 11px;
+      text-transform: uppercase;
+      padding: 0 0 10px 0;
+      border-bottom: 1px solid #2a2a3a;
+    }
+    td {
+      padding: 8px 0;
+      border-bottom: 1px solid #1a1a2e;
+      color: #ccc;
+    }
+    td.buy  { color: #4ade80; font-weight: 600; }
+    td.sell { color: #f87171; font-weight: 600; }
+    td.win  { color: #4ade80; }
+    td.loss { color: #f87171; }
+
+    .kill-btn {
+      background: #7f1d1d;
+      color: #fca5a5;
+      border: 1px solid #991b1b;
+      border-radius: 8px;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      margin-top: 14px;
+      width: 100%;
+      transition: background 0.2s;
+    }
+    .kill-btn:hover { background: #991b1b; }
+    .kill-btn.active {
+      background: #14532d;
+      color: #86efac;
+      border-color: #166534;
+    }
+
+    .update-time {
+      font-size: 11px;
+      color: #444;
+      text-align: right;
+      margin-top: 8px;
+    }
+    .position-card {
+      background: #1a1a2e;
+      border: 1px solid #2a2a3a;
+      border-radius: 10px;
+      padding: 18px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>⚡ Algorithmic Trading Dashboard — Paper Mode</h1>
+
+<!-- Metric cards -->
+<div class="grid">
+  <div class="card">
+    <div class="label">Portfolio value</div>
+    <div class="value" id="portfolio">₹1,00,000</div>
+  </div>
+  <div class="card">
+    <div class="label">Total PnL</div>
+    <div class="value" id="total-pnl">₹0.00</div>
+  </div>
+  <div class="card">
+    <div class="label">Daily PnL</div>
+    <div class="value" id="daily-pnl">₹0.00</div>
+  </div>
+  <div class="card">
+    <div class="label">Last signal</div>
+    <div style="margin-top:4px">
+      <span class="signal-badge signal-NONE" id="signal-badge">NONE</span>
+    </div>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="charts-row">
+  <div class="chart-card">
+    <h3>Equity curve</h3>
+    <canvas id="equity-chart" height="130"></canvas>
+  </div>
+  <div class="position-card">
+    <h3 style="font-size:13px;color:#888;margin-bottom:14px;font-weight:500">
+      Open position
+    </h3>
+    <div style="font-size:13px;line-height:2.2;color:#ccc">
+      <div>Shares &nbsp;&nbsp;: <span id="pos-shares" style="color:#fff">0</span></div>
+      <div>Entry &nbsp;&nbsp;&nbsp;: <span id="pos-entry" style="color:#fff">—</span></div>
+      <div>Stop loss : <span id="pos-stop" style="color:#f87171">—</span></div>
+      <div>Last price: <span id="pos-price" style="color:#fff">—</span></div>
+      <div>Unrealised: <span id="pos-unreal" style="color:#fff">—</span></div>
+    </div>
+    <button class="kill-btn" id="kill-btn" onclick="toggleKillSwitch()">
+      🛑 Activate Kill Switch
+    </button>
+  </div>
+</div>
+
+<!-- Trade log + Signal log -->
+<div class="bottom-row">
+  <div class="chart-card">
+    <h3>Trade history</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th><th>Action</th>
+          <th>Price</th><th>PnL</th><th>Reason</th>
+        </tr>
+      </thead>
+      <tbody id="trade-table">
+        <tr><td colspan="5" style="color:#444">No trades yet</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="chart-card">
+    <h3>Recent signals</h3>
+    <table>
+      <thead>
+        <tr><th>Time</th><th>Signal</th><th>Price</th></tr>
+      </thead>
+      <tbody id="signal-table">
+        <tr><td colspan="3" style="color:#444">No signals yet</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="update-time">Last updated: <span id="update-time">—</span></div>
+
+<script>
+  // ── Equity chart setup ────────────────────────────────────────────────
+  const ctx   = document.getElementById('equity-chart').getContext('2d');
+  const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels  : [],
+      datasets: [{
+        data           : [],
+        borderColor    : '#60a5fa',
+        backgroundColor: 'rgba(96,165,250,0.08)',
+        borderWidth    : 2,
+        pointRadius    : 0,
+        fill           : true,
+        tension        : 0.3
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins : { legend: { display: false } },
+      scales  : {
+        x: { display: false },
+        y: {
+          ticks: { color: '#666', font: { size: 11 } },
+          grid : { color: '#1f1f2e' }
+        }
+      }
+    }
+  });
+
+  // ── Poll the API every 5 seconds ──────────────────────────────────────
+  function fmt(n) {
+    return '₹' + Number(n).toLocaleString('en-IN', {
+      minimumFractionDigits: 2, maximumFractionDigits: 2
+    });
+  }
+
+  function update() {
+    fetch('/api/state')
+      .then(r => r.json())
+      .then(d => {
+        // Metric cards
+        document.getElementById('portfolio').textContent = fmt(d.portfolio_value);
+
+        const tPnl = document.getElementById('total-pnl');
+        tPnl.textContent = (d.total_pnl >= 0 ? '+' : '') + fmt(d.total_pnl);
+        tPnl.className   = 'value ' + (d.total_pnl >= 0 ? 'positive' : 'negative');
+
+        const dPnl = document.getElementById('daily-pnl');
+        dPnl.textContent = (d.daily_pnl >= 0 ? '+' : '') + fmt(d.daily_pnl);
+        dPnl.className   = 'value ' + (d.daily_pnl >= 0 ? 'positive' : 'negative');
+
+        const badge = document.getElementById('signal-badge');
+        badge.textContent = d.last_signal;
+        badge.className   = 'signal-badge signal-' + d.last_signal;
+
+        // Position panel
+        document.getElementById('pos-shares').textContent =
+          d.position || '0';
+        document.getElementById('pos-entry').textContent =
+          d.position ? fmt(d.entry_price) : '—';
+        document.getElementById('pos-stop').textContent =
+          d.position ? fmt(d.stop_loss) : '—';
+        document.getElementById('pos-price').textContent =
+          fmt(d.last_price);
+
+        if (d.position > 0 && d.entry_price > 0) {
+          const ur = ((d.last_price - d.entry_price) /
+                       d.entry_price * 100).toFixed(2);
+          const el = document.getElementById('pos-unreal');
+          el.textContent = (ur >= 0 ? '+' : '') + ur + '%';
+          el.style.color = ur >= 0 ? '#4ade80' : '#f87171';
+        } else {
+          document.getElementById('pos-unreal').textContent = '—';
+        }
+
+        // Kill switch button
+        const kb = document.getElementById('kill-btn');
+        if (d.kill_switch) {
+          kb.textContent = '✅ Deactivate Kill Switch';
+          kb.className   = 'kill-btn active';
+        } else {
+          kb.textContent = '🛑 Activate Kill Switch';
+          kb.className   = 'kill-btn';
+        }
+
+        // Equity chart
+        if (d.equity_curve && d.equity_curve.length > 0) {
+          chart.data.labels   = d.equity_curve.map(p => p.time);
+          chart.data.datasets[0].data = d.equity_curve.map(p => p.value);
+          chart.update('none');
+        }
+
+        // Trade table
+        if (d.trades && d.trades.length > 0) {
+          const rows = [...d.trades].reverse().slice(0, 10).map(t => `
+            <tr>
+              <td>${t.time}</td>
+              <td class="${t.action.toLowerCase()}">${t.action}</td>
+              <td>${fmt(t.price)}</td>
+              <td class="${t.pnl === null ? '' : t.pnl >= 0 ? 'win' : 'loss'}">
+                ${t.pnl === null ? '—' :
+                  (t.pnl >= 0 ? '+' : '') + fmt(t.pnl)}
+              </td>
+              <td>${t.reason}</td>
+            </tr>`).join('');
+          document.getElementById('trade-table').innerHTML = rows;
+        }
+
+        // Signal table
+        if (d.signals && d.signals.length > 0) {
+          const rows = [...d.signals].reverse().slice(0, 10).map(s => `
+            <tr>
+              <td>${s.time}</td>
+              <td class="${s.signal.toLowerCase()}">${s.signal}</td>
+              <td>${fmt(s.price)}</td>
+            </tr>`).join('');
+          document.getElementById('signal-table').innerHTML = rows;
+        }
+
+        document.getElementById('update-time').textContent = d.last_update;
+      })
+      .catch(e => console.log('Fetch error:', e));
+  }
+
+  // Poll every 5 seconds
+  update();
+  setInterval(update, 5000);
+
+  // Kill switch toggle
+  function toggleKillSwitch() {
+    fetch('/api/kill_switch', { method: 'POST' })
+      .then(r => r.json())
+      .then(d => { console.log(d.status); update(); });
+  }
+</script>
+</body>
+</html>

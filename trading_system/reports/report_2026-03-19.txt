@@ -1,0 +1,37 @@
+============================================================
+  END OF DAY REPORT — 2026-03-19
+  Strategy: EMA Crossover
+============================================================
+
+  SESSION
+  Started  : 03:21:32
+  Duration : 0:00:02
+  Cycles   : 1
+
+  PNL SUMMARY
+  Starting capital : ₹  100,000.00
+  Final capital    : ₹  100,000.00
+  Total PnL        : ₹       +0.00
+  Total return     :       +0.00%
+
+  TRADE SUMMARY
+  Total signals : 1
+  Total trades  : 0
+  Errors        : 0
+
+  RISK SUMMARY
+  Daily PnL    : ₹+0.00
+  Kill switch  : False
+
+  WHAT WORKED
+  ✅ No errors — system ran cleanly all day
+  ✅ Signal engine fired 1 signals without interruption
+
+  WHAT FAILED
+  No major failures today.
+
+  IMPROVEMENTS FOR TOMORROW
+  → No trades today — consider loosening entry conditions or switching to a shorter timeframe
+  → Run backtest on last 30 days to verify strategy still valid
+
+============================================================
